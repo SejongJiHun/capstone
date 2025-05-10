@@ -1,0 +1,84 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  display: grid;
+  height: 100vh;
+}
+
+
+.main1 {
+  height: 66.66vh;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  padding: 10px;
+  padding-bottom: 0px;
+
+}
+
+.box {
+  background-color: #b0d4f1;
+  border: 2px solid #6ca0c9;
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+/* A, B, C */
+.a {
+  grid-column: 1;
+  grid-row: 1;
+}
+.b {
+  grid-column: 2;
+  grid-row: 1;
+}
+.c {
+  grid-column: 3;
+  grid-row: 1 / span 2; /* C는 위아래 2칸 차지 */
+}
+
+/* D, E */
+.d {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.e {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+
+.main2 {
+    height: 33.33vh;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  gap: 10px;
+  padding: 10px;
+
+}
+
+/* F, G → 1:1 비율로 수정 */
+.f {
+  grid-column: 1;
+  grid-row: 1;
+}
+.g {
+  grid-column: 2;
+  grid-row: 1;
+}

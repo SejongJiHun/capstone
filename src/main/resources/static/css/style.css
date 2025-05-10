@@ -1,0 +1,158 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  display: grid;
+  /*grid-template-rows: 1fr 1fr;*/
+  height: 100vh;
+  gap: 10px;
+  margin-left:0px;
+  margin-right:0px;
+}
+
+.title{
+  text-align: center;
+  font-size: 32px;
+  padding-top: 10px;
+  padding-bottom: 0px;
+  margin-bottom: 0px;
+}
+
+canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+
+.main1 {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  padding: 10px;
+  padding-bottom: 0px;
+  padding-top: 0px;
+}
+
+.main2 {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  gap: 10px;
+  padding: 10px;
+    padding-top: 0px;
+}
+
+
+
+.box {
+    min-height: 300px;
+    border: 2px solid #6ca0c9;
+    /*background-color: #b0d4f1;*/
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 20px;
+    display: grid;
+}
+
+/* A, B, C */
+.a {
+  grid-column: 1;
+  grid-row: 1;
+}
+.b {
+  grid-column: 2;
+  grid-row: 1;
+  padding: 0px;
+}
+.c {
+  grid-column: 3;
+  grid-row: 1 / span 2; /* C는 위아래 2칸 차지 */
+  padding: 0px;
+}
+
+/* D, E */
+.d {
+  grid-column: 1;
+  grid-row: 2;
+}
+.e {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+
+.f {
+  grid-column: 1 ;
+  grid-row: 1;
+}
+.g {
+  grid-column: 2 / span 2;
+  grid-row: 1;
+}
+
+
+
+/* 날씨 전체 감싸는 박스 */
+.weather_container {
+  width: 100%;
+  padding: 16px;
+  background-color: #fff;
+  box-sizing: border-box;
+  font-family: 'Arial', sans-serif;
+  font-size: 16px;
+  font-weight: normal;
+}
+
+/* 제목 (역 이름) */
+.weather_container h3 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+/* 시간 정보 */
+.weather_container .time {
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+/* 날씨 2열 그리드 */
+.weather_box1 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* 각 날씨 속성 박스 */
+.weather_box2,
+.weather_box3 {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 15px;
+  background-color: #fdfdfd;
+}
+
+.weather_box2 div,
+.weather_box3 div {
+  font-weight: bold;
+}
+
+
+
+
+

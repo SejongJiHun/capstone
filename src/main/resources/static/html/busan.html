@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>부산 도시철도</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 90vh; }
+    .button-container { margin: 10px; }
+    .line-button {
+      margin-right: 5px;
+      padding: 6px 10px;
+      border: none;
+      font-weight: bold;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .station-label {
+      font-size: 11px;
+      color: black;
+      text-align: center;
+      pointer-events: none;
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+
+<h3>부산 도시철도</h3>
+<div class="button-container" id="button-container"></div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([35.1796, 129.0756], 11);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    opacity: 0.3
+  }).addTo(map);
+
+  const lineColors = {
+    "부산도시철도 1호선": "#FF0000",     // Red
+    "부산도시철도 2호선": "#00A84D",     // Green (서울 2호선 계열)
+    "부산도시철도 3호선": "#FF8C00",     // Dark Orange
+    "부산도시철도 4호선": "#0072BC",     // Deep Blue
+    "부산도시철도 동해선": "#00BFFF",   //
+    "부산도시철도 부산김해선": "#800080" // Purple
+  };
+
+  const lineGroups = {};
+  const lineCoords = {};
+  const allLayers = L.layerGroup().addTo(map);
+  let activeLine = null;
+
+  fetch('../data/line/busan.json')
+          .then(res => res.json())
+          .then(data => {
+            data.forEach(station => {
+              const { 위도, 경도, 역명, 노선 } = station;
+
+              if (!lineGroups[노선]) {
+                lineGroups[노선] = L.layerGroup();
+                lineCoords[노선] = [];
+              }
+
+              const color = lineColors[노선] || 'gray';
+              lineCoords[노선].push([위도, 경도]);
+
+              // [1] 툴팁 감지용 투명 마커
+              const hoverMarker = L.circleMarker([위도, 경도], {
+                radius: 10,
+                fillOpacity: 0,
+                opacity: 0
+              }).bindTooltip(`${역명}`, {
+                direction: 'top',
+                offset: [0, -8],
+                opacity: 0.9,
+                sticky: false
+              });
+              hoverMarker._isTooltipMarker = true;
+              lineGroups[노선].addLayer(hoverMarker);
+
+              // [2] 시각용 마커
+              const visibleMarker = L.circleMarker([위도, 경도], {
+                radius: 2,
+                color,
+                fillColor: color,
+                fillOpacity: 1
+              });
+              lineGroups[노선].addLayer(visibleMarker);
+
+              // [3] 라벨에 노선 기반 class 부여
+              const labelClass = `station-label label-${노선.replace(/\s/g, "_")}`;
+              const label = L.divIcon({
+                className: labelClass,
+                html: `<div>${역명}</div>`,
+                iconSize: [60, 20],
+                iconAnchor: [30, -12]
+              });
+              lineGroups[노선].addLayer(L.marker([위도, 경도], { icon: label }));
+            });
+
+            // 노선 연결선
+            Object.entries(lineCoords).forEach(([노선, coords]) => {
+              const polyline = L.polyline(coords, {
+                color: lineColors[노선] || 'gray',
+                weight: 3,
+                opacity: 0.7
+              });
+              lineGroups[노선].addLayer(polyline);
+            });
+
+            Object.values(lineGroups).forEach(group => group.addTo(allLayers));
+
+            // 버튼 생성
+            const container = document.getElementById("button-container");
+
+            Object.keys(lineGroups).forEach(노선 => {
+              const btn = document.createElement("button");
+              btn.textContent = 노선;
+              btn.className = "line-button";
+
+              const bgColor = lineColors[노선] || 'gray';
+              btn.style.backgroundColor = bgColor;
+              btn.style.color = (bgColor === 'yellow' || bgColor === 'lightyellow') ? 'black' : 'white';
+
+              btn.onclick = () => {
+                const labelClass = `.label-${노선.replace(/\s/g, "_")}`;
+
+                if (activeLine === 노선) {
+                  // ✅ 전체 복원
+                  Object.entries(lineGroups).forEach(([line, group]) => {
+                    group.eachLayer(layer => {
+                      if (layer.setStyle && !layer._isTooltipMarker) {
+                        layer.setStyle({ opacity: 0.7, fillOpacity: 1 });
+                      }
+                    });
+                  });
+                  document.querySelectorAll(".station-label").forEach(el => {
+                    el.style.opacity = '1';
+                  });
+                  activeLine = null;
+                } else {
+                  // ✅ 선택 노선만 진하게, 나머지 흐리게
+                  Object.entries(lineGroups).forEach(([line, group]) => {
+                    const isActive = (line === 노선);
+                    group.eachLayer(layer => {
+                      if (layer.setStyle && !layer._isTooltipMarker) {
+                        layer.setStyle({
+                          opacity: isActive ? 1 : 0.1,
+                          fillOpacity: isActive ? 1 : 0.1
+                        });
+                      }
+                    });
+                  });
+
+                  // 라벨 opacity 처리
+                  document.querySelectorAll(".station-label").forEach(el => {
+                    el.style.opacity = '0.1';
+                  });
+                  document.querySelectorAll(labelClass).forEach(el => {
+                    el.style.opacity = '1';
+                  });
+
+                  activeLine = 노선;
+                }
+              };
+
+              container.appendChild(btn);
+            });
+          });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>수도권 도시철도 1~9호선</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 90vh; }
+    .button-container { margin: 10px; }
+    .line-button {
+      margin-right: 5px;
+      padding: 6px 10px;
+      border: none;
+      font-weight: bold;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .station-label {
+      font-size: 11px;
+      color: black;
+      text-align: center;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<h3>수도권 도시철도 1~9호선</h3>
+<div class="button-container" id="button-container"></div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([37.56, 126.97], 11);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    opacity: 0.3
+  }).addTo(map);
+
+  const lineColors = {
+    "수도권도시철도 1호선": "#003DA5",
+    "수도권도시철도 2호선": "#00A84D",
+    "수도권도시철도 3호선": "#EF7C1C",
+    "수도권도시철도 4호선": "#00A0E9",
+    "수도권도시철도 5호선": "#996CAC",
+    "수도권도시철도 6호선": "#CD7C2F",
+    "수도권도시철도 7호선": "#747F00",
+    "수도권도시철도 8호선": "#E71E6E",
+    "수도권도시철도 9호선": "#BDB76B"
+  };
+
+  const lineGroups = {};
+  const lineCoords = {};
+  const allLayers = L.layerGroup().addTo(map);
+  let activeLine = null;
+
+  fetch('../data/line/seoul_1~9.json')  // ← 경로 수정 필요
+          .then(res => res.json())
+          .then(data => {
+            data.forEach(station => {
+              const { 위도, 경도, 역명, 노선 } = station;
+              const color = lineColors[노선] || 'gray';
+
+              if (!lineGroups[노선]) {
+                lineGroups[노선] = L.layerGroup();
+                lineCoords[노선] = [];
+              }
+
+              lineCoords[노선].push([위도, 경도]);
+
+              // [1] 투명 툴팁 감지용 마커
+              const hoverMarker = L.circleMarker([위도, 경도], {
+                radius: 10,
+                fillOpacity: 0,
+                opacity: 0,
+                stroke: false
+              }).bindTooltip(`${역명}`, {
+                direction: 'top',
+                offset: [0, -8],
+                opacity: 0.95,
+                sticky: false
+              });
+              hoverMarker._isTooltipMarker = true;
+              lineGroups[노선].addLayer(hoverMarker);
+
+              // [2] 시각용 마커
+              const visibleMarker = L.circleMarker([위도, 경도], {
+                radius: 2,
+                color,
+                fillColor: color,
+                fillOpacity: 1
+              });
+              visibleMarker._type = 'station';
+              visibleMarker._line = 노선;
+              lineGroups[노선].addLayer(visibleMarker);
+
+              // [3] 라벨 생성 (클래스 분리)
+              const label = L.divIcon({
+                className: `station-label label-${노선.replace(/\s/g, '_')}`,
+                html: `<div>${역명}</div>`,
+                iconSize: [60, 20],
+                iconAnchor: [30, -12]
+              });
+              lineGroups[노선].addLayer(L.marker([위도, 경도], { icon: label }));
+            });
+
+            // [4] 선 추가
+            Object.entries(lineCoords).forEach(([노선, coords]) => {
+              const polyline = L.polyline(coords, {
+                color: lineColors[노선] || 'gray',
+                weight: 3,
+                opacity: 0.7
+              });
+              polyline._type = 'line';
+              polyline._line = 노선;
+              lineGroups[노선].addLayer(polyline);
+            });
+
+            // [5] 모든 그룹 표시
+            Object.values(lineGroups).forEach(g => g.addTo(allLayers));
+
+            // [6] 버튼 생성
+            const container = document.getElementById("button-container");
+
+            Object.keys(lineGroups).forEach(노선 => {
+              const btn = document.createElement("button");
+              btn.textContent = 노선;
+              btn.className = "line-button";
+              btn.style.backgroundColor = lineColors[노선] || 'gray';
+
+              btn.onclick = () => {
+                if (activeLine === 노선) {
+                  Object.values(lineGroups).forEach(group => {
+                    group.eachLayer(layer => {
+                      if (layer.setStyle && !layer._isTooltipMarker) {
+                        layer.setStyle({ opacity: 1, fillOpacity: 1 });
+                      }
+                    });
+                  });
+                  document.querySelectorAll('.station-label').forEach(el => el.style.opacity = '1');
+                  activeLine = null;
+                } else {
+                  Object.entries(lineGroups).forEach(([line, group]) => {
+                    group.eachLayer(layer => {
+                      if (layer.setStyle && !layer._isTooltipMarker) {
+                        layer.setStyle({
+                          opacity: (line === 노선) ? 1 : 0.1,
+                          fillOpacity: (line === 노선) ? 1 : 0.1
+                        });
+                      }
+                    });
+                  });
+
+                  // 라벨 처리
+                  document.querySelectorAll('.station-label').forEach(el => el.style.opacity = '0.1');
+                  document.querySelectorAll(`.label-${노선.replace(/\s/g, '_')}`).forEach(el => el.style.opacity = '1');
+
+                  activeLine = 노선;
+                }
+              };
+
+              container.appendChild(btn);
+            });
+          });
+</script>
+
+</body>
+</html>

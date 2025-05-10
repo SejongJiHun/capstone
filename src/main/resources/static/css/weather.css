@@ -1,0 +1,46 @@
+.weather_container{
+    margin: 0px;
+    padding: 0px;
+    border: solid;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+
+}
+
+.stationName{
+    margin: 0px;
+    padding: 0px;
+    border: solid;
+}
+
+.time{
+    margin: 0px;
+    padding: 0px;
+    border: solid;
+}
+
+
+.weather_box1{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 0px;
+    padding: 0px;
+    border: solid;
+}
+
+.weather_box2{
+    margin: 0px;
+    margin-right:10px;
+    padding: 0px;
+    border: solid;
+}
+
+.weather_box3{
+    margin: 0px;
+    padding: 0px;
+    border: solid;
+}
+
+
+
