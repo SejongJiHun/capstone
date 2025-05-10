@@ -10,7 +10,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
         // /dashboard → static/index.html로 연결
-        registry.addViewController("/dashboard").setViewName("forward:/html/index.html");
+        registry.addViewController("/riskview").setViewName("forward:/html/index.html");
     }
 
 }

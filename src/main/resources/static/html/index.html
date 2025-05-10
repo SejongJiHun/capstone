@@ -113,15 +113,17 @@
 
 <script>
     function navigate(page) {
-        location.hash = page;
-        loadPageFromHash();
+        const url = new URL(window.location);
+        url.searchParams.set("page", page);
+        history.pushState({}, '', url);
+        loadPageFromQuery();
     }
 
-    function loadPageFromHash() {
-        const page = location.hash ? location.hash.slice(1) : 'seoul_1~9.html';
-        document.getElementById('contentFrame').src = page;
+    function loadPageFromQuery() {
+        const params = new URLSearchParams(location.search);
+        const page = params.get("page") || 'seoul_1~9.html';
+        document.getElementById('contentFrame').src = 'html/' + page;
 
-        // 버튼 상태 초기화 및 활성화 표시
         document.querySelectorAll('.sidebar-button').forEach(btn => {
             btn.classList.remove('active');
             if (btn.getAttribute('onclick')?.includes(page)) {
@@ -130,16 +132,15 @@
         });
     }
 
-    // 처음 접속 시 알림
+    window.addEventListener('popstate', loadPageFromQuery);
+
     window.addEventListener('load', () => {
         if (!sessionStorage.getItem('shownIntro')) {
             alert('환영합니다! 이 사이트는 철도 사고 위험도 예측 시스템입니다.');
             sessionStorage.setItem('shownIntro', true);
         }
-        loadPageFromHash();
+        loadPageFromQuery();
     });
-
-    window.addEventListener('hashchange', loadPageFromHash);
 </script>
 
 </body>
