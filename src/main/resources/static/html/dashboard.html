@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>철도 사고 예측 시스템</title>
+  <!-- 과거통계용 및 전체적 css -->
+  <link rel="stylesheet" href="../css/style.css">
+  <!-- 날씨컨테이너용 css -->
+  <!--<link rel="stylesheet" href="../css/weather.css">-->
+</head>
+<!-- chart.js-->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+
+
+<!-- plotly.js-->
+<script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+
+
+<script src="../js/chart.js"></script>
+<script src="../js/boxbc.js"></script>
+
+<!--<script src="../js/chart_plotly_version.js"></script>-->
+
+<body>
+<div class="container">
+
+  <h1 class = "title"> 철도 사고 예측 대시보드 </h1>
+  <div class="main1">
+    <div class="box a"><canvas id="chartA"></canvas></div>
+    <div class="box b">
+      <div class="weather_container" id="weatherInfo">날씨 정보: -</div>
+    </div>
+    <div class="box c">
+      <div>
+        <input type="text" id="stationNameInput" placeholder="역명 입력(예: 서울 / '역' 제외)">
+        <input type="text" id="stationLineInput" placeholder="노선 입력">
+        <button onclick="handleQuery();">조회</button>
+      </div>
+      <div id="predictResult">위험도 결과: -</div>
+    </div>
+    <div class="box d"><canvas id="chartD"></canvas></div>
+    <div class="box e"><canvas id="chartE"></canvas></div>
+  </div>
+
+  <div class="main2">
+    <div class="box f"><canvas id="chartF"></canvas></div>
+    <div class="box g"><canvas id="chartG"></canvas></div>
+  </div>
+
+
+</div>
+
+
+
+</body>
+</html>
