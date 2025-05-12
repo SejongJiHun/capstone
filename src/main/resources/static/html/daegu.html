@@ -3,81 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <title>대구 도시철도</title>
-
-  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-    }
-
-    #map {
-      height: 100vh;
-      position: relative;
-    }
-
+    body { margin: 0; overflow: hidden; }
+    #map { height: 100vh; position: relative; }
     .top-controls {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 1000;
-      display: flex;
-      gap: 12px;
-      align-items: center;
+      position: absolute; top: 10px; right: 10px; z-index: 1000;
+      display: flex; gap: 12px; align-items: center;
     }
-
     .refresh-button {
-      background: white;
-      color: #007bff;
-      border: 2px solid white;
-      border-radius: 5px;
-      padding: 6px 12px;
-      font-weight: bold;
-      cursor: pointer;
+      background: white; color: #007bff;
+      border: 2px solid white; border-radius: 5px;
+      padding: 6px 12px; font-weight: bold; cursor: pointer;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       transition: background-color 0.2s;
     }
-
-    .refresh-button i {
-      margin-right: 6px;
-    }
-
-    .refresh-button:hover {
-      background-color: #f8f9fa;
-    }
-
-    .refresh-button:active {
-      background-color: #cce5ff;
-    }
-
+    .refresh-button:hover { background-color: #f0f8ff; }
+    .refresh-button:active { background-color: #cce5ff; }
     .button-container {
-      display: flex;
-      gap: 6px;
+      display: flex; gap: 6px;
       background: rgba(255, 255, 255, 0.9);
-      padding: 6px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      padding: 6px; border-radius: 8px;
     }
-
     .line-button {
-      padding: 6px 10px;
-      border: 2px solid;
-      font-weight: bold;
-      border-radius: 5px;
-      cursor: pointer;
-      background: white;
-      color: black;
+      padding: 6px 10px; border: 2px solid; font-weight: bold;
+      border-radius: 5px; cursor: pointer; background: white; color: black;
       transition: background-color 0.2s, color 0.2s;
     }
-
     .line-button.active-line {
       color: white !important;
       background: currentColor;
     }
-
     .station-label {
       font-size: 11px;
       color: black;
@@ -94,14 +51,31 @@
     </button>
     <div class="button-container" id="button-container"></div>
   </div>
+  <!-- ✅ 검색창 -->
+  <div style="position: absolute; bottom: 10px; right: 10px; z-index: 1000;">
+    <input id="searchInput" type="text" placeholder="역명 검색 (쉼표로 구분)"
+           style="padding: 6px; border-radius: 5px; border: 1px solid #ccc; width: 220px;" />
+    <button id="searchButton" style="margin-left: 4px; padding: 6px 10px;">검색</button>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script>
-  const map = L.map('map').setView([35.8714, 128.6014], 11);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    opacity: 0.3
-  }).addTo(map);
+
+<script type="module">
+  import { requestRiskScores, updateRiskLabels, makeStationKey } from '../js/riskHandler.js';
+
+  const mapKey = 'daegu';
+
+  const savedCenter = JSON.parse(sessionStorage.getItem(`mapCenter__${mapKey}`) || 'null');
+  const savedZoom = parseInt(sessionStorage.getItem(`mapZoom__${mapKey}`)) || 11;
+
+  const map = L.map('map').setView(savedCenter || [35.8714, 128.6014], savedZoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.3 }).addTo(map);
+
+  map.on('moveend', () => {
+    sessionStorage.setItem(`mapCenter__${mapKey}`, JSON.stringify(map.getCenter()));
+    sessionStorage.setItem(`mapZoom__${mapKey}`, map.getZoom());
+  });
 
   const lineColors = {
     "대구도시철도 1호선": "#e61919",
@@ -110,131 +84,159 @@
     "대구도시철도 대경선": "#0033cc"
   };
 
-  const lineGroups = {};
-  const lineCoords = {};
+  let lineGroups = {}, lineCoords = {}, stationLabelLayers = {}, tooltipMarkers = {};
   const allLayers = L.layerGroup().addTo(map);
+  let stationData = [];
   let activeLine = null;
 
   fetch('../data/line/daegu.json')
           .then(res => res.json())
           .then(data => {
-            data.forEach(station => {
-              const { 위도, 경도, 역명, 노선 } = station;
-              const color = lineColors[노선] || 'gray';
+            stationData = data;
+            drawMap(data);
 
-              if (!lineGroups[노선]) {
-                lineGroups[노선] = L.layerGroup();
-                lineCoords[노선] = [];
+            const cached = sessionStorage.getItem(`riskData__${mapKey}`);
+            if (cached) {
+              updateRiskLabels(JSON.parse(cached), stationLabelLayers);
+            }
+          });
+
+  function drawMap(data) {
+    data.forEach(station => {
+      const { 위도, 경도, 역명, 노선 } = station;
+      const color = lineColors[노선] || 'gray';
+
+      if (!lineGroups[노선]) {
+        lineGroups[노선] = L.layerGroup();
+        lineCoords[노선] = [];
+      }
+
+      lineCoords[노선].push([위도, 경도]);
+
+      const hoverMarker = L.circleMarker([위도, 경도], {
+        radius: 10, fillOpacity: 0, opacity: 0, stroke: false
+      }).bindTooltip(`${역명}`, { direction: 'top', offset: [0, -8], opacity: 0.95 });
+      hoverMarker._isTooltipMarker = true;
+      lineGroups[노선].addLayer(hoverMarker);
+
+      const visibleMarker = L.circleMarker([위도, 경도], {
+        radius: 2, color, fillColor: color, fillOpacity: 1
+      });
+      visibleMarker._type = 'station';
+      visibleMarker._line = 노선;
+      lineGroups[노선].addLayer(visibleMarker);
+
+      const labelIcon = L.divIcon({
+        className: `station-label label-${노선.replace(/\s/g, '_')}`,
+        html: `<div>${역명}</div>`,
+        iconSize: [60, 20],
+        iconAnchor: [30, -12]
+      });
+      const labelMarker = L.marker([위도, 경도], { icon: labelIcon });
+
+      const key = makeStationKey(역명, 노선);
+      stationLabelLayers[key] = labelMarker;
+
+      lineGroups[노선].addLayer(labelMarker);
+    });
+
+    Object.entries(lineCoords).forEach(([노선, coords]) => {
+      const polyline = L.polyline(coords, { color: lineColors[노선] || 'gray', weight: 3, opacity: 0.7 });
+      polyline._type = 'line';
+      polyline._line = 노선;
+      lineGroups[노선].addLayer(polyline);
+    });
+
+    Object.values(lineGroups).forEach(g => g.addTo(allLayers));
+
+    const container = document.getElementById("button-container");
+    Object.keys(lineGroups).forEach(노선 => {
+      const color = lineColors[노선] || 'gray';
+      const btn = document.createElement("button");
+      const label = 노선.replace("대구도시철도 ", "");
+
+      btn.textContent = label;
+      btn.className = "line-button";
+      btn.style.borderColor = color;
+      btn.style.color = color;
+      btn.setAttribute("data-line", 노선);
+
+      btn.onclick = () => {
+        document.querySelectorAll(".line-button").forEach(b => {
+          const line = b.getAttribute("data-line");
+          const c = lineColors[line] || 'gray';
+          b.classList.remove("active-line");
+          b.style.backgroundColor = "white";
+          b.style.color = c;
+        });
+
+        if (activeLine === 노선) {
+          Object.values(lineGroups).forEach(group => {
+            group.eachLayer(layer => {
+              if (layer.setStyle && !layer._isTooltipMarker) {
+                layer.setStyle({ opacity: 1, fillOpacity: 1 });
               }
-
-              lineCoords[노선].push([위도, 경도]);
-
-              const hoverMarker = L.circleMarker([위도, 경도], {
-                radius: 10,
-                fillOpacity: 0,
-                opacity: 0,
-                stroke: false
-              }).bindTooltip(`${역명}`, {
-                direction: 'top',
-                offset: [0, -8],
-                opacity: 0.95,
-                sticky: false
-              });
-              hoverMarker._isTooltipMarker = true;
-              lineGroups[노선].addLayer(hoverMarker);
-
-              const visibleMarker = L.circleMarker([위도, 경도], {
-                radius: 2,
-                color,
-                fillColor: color,
-                fillOpacity: 1
-              });
-              visibleMarker._type = 'station';
-              visibleMarker._line = 노선;
-              lineGroups[노선].addLayer(visibleMarker);
-
-              const label = L.divIcon({
-                className: `station-label label-${노선.replace(/\s/g, '_')}`,
-                html: `<div>${역명}</div>`,
-                iconSize: [60, 20],
-                iconAnchor: [30, -12]
-              });
-              lineGroups[노선].addLayer(L.marker([위도, 경도], { icon: label }));
-            });
-
-            Object.entries(lineCoords).forEach(([노선, coords]) => {
-              const polyline = L.polyline(coords, {
-                color: lineColors[노선] || 'gray',
-                weight: 3,
-                opacity: 0.7
-              });
-              polyline._type = 'line';
-              polyline._line = 노선;
-              lineGroups[노선].addLayer(polyline);
-            });
-
-            Object.values(lineGroups).forEach(g => g.addTo(allLayers));
-
-            const container = document.getElementById("button-container");
-
-            Object.keys(lineGroups).forEach(노선 => {
-              const color = lineColors[노선] || 'gray';
-              const btn = document.createElement("button");
-              const label = 노선.replace("대구도시철도 ", "");
-
-              btn.textContent = label;
-              btn.className = "line-button";
-              btn.style.borderColor = color;
-              btn.style.color = color;
-              btn.setAttribute("data-line", 노선);
-
-              btn.onclick = () => {
-                // 초기화: 모든 버튼 원상 복구
-                document.querySelectorAll(".line-button").forEach(b => {
-                  const line = b.getAttribute("data-line");
-                  const c = lineColors[line] || 'gray';
-                  b.classList.remove("active-line");
-                  b.style.backgroundColor = "white";
-                  b.style.color = c;
-                });
-
-                // 이미 선택된 상태라면 전체 노선 보여주기
-                if (activeLine === 노선) {
-                  Object.values(lineGroups).forEach(group => {
-                    group.eachLayer(layer => {
-                      if (layer.setStyle && !layer._isTooltipMarker) {
-                        layer.setStyle({ opacity: 1, fillOpacity: 1 });
-                      }
-                    });
-                  });
-                  document.querySelectorAll('.station-label').forEach(el => el.style.opacity = '1');
-                  activeLine = null;
-                } else {
-                  // 버튼 스타일 적용
-                  btn.classList.add("active-line");
-                  btn.style.color = "white";
-                  btn.style.backgroundColor = color;
-
-                  // 지도 스타일 업데이트
-                  Object.entries(lineGroups).forEach(([line, group]) => {
-                    group.eachLayer(layer => {
-                      if (layer.setStyle && !layer._isTooltipMarker) {
-                        layer.setStyle({
-                          opacity: (line === 노선) ? 1 : 0.1,
-                          fillOpacity: (line === 노선) ? 1 : 0.1
-                        });
-                      }
-                    });
-                  });
-                  document.querySelectorAll('.station-label').forEach(el => el.style.opacity = '0.1');
-                  document.querySelectorAll(`.label-${노선.replace(/\s/g, '_')}`).forEach(el => el.style.opacity = '1');
-                  activeLine = 노선;
-                }
-              };
-
-              container.appendChild(btn);
             });
           });
+          document.querySelectorAll('.station-label').forEach(el => el.style.opacity = '1');
+          activeLine = null;
+        } else {
+          btn.classList.add("active-line");
+          btn.style.color = "white";
+          btn.style.backgroundColor = color;
+
+          Object.entries(lineGroups).forEach(([line, group]) => {
+            group.eachLayer(layer => {
+              if (layer.setStyle && !layer._isTooltipMarker) {
+                layer.setStyle({
+                  opacity: (line === 노선) ? 1 : 0.1,
+                  fillOpacity: (line === 노선) ? 1 : 0.1
+                });
+              }
+            });
+          });
+          document.querySelectorAll('.station-label').forEach(el => el.style.opacity = '0.1');
+          document.querySelectorAll(`.label-${노선.replace(/\s/g, '_')}`).forEach(el => el.style.opacity = '1');
+          activeLine = 노선;
+        }
+      };
+
+      container.appendChild(btn);
+    });
+  }
+
+  document.querySelector('.refresh-button').addEventListener('click', () => {
+    requestRiskScores(stationData, riskData => {
+      updateRiskLabels(riskData, stationLabelLayers);
+      sessionStorage.setItem(`riskData__${mapKey}`, JSON.stringify(riskData));
+    });
+  });
+
+  document.getElementById('searchButton').addEventListener('click', () => {
+    const input = document.getElementById('searchInput').value.trim();
+    const terms = input.split(',').map(t => t.trim()).filter(t => t !== '');
+
+    Object.values(tooltipMarkers).forEach(marker => map.removeLayer(marker));
+    tooltipMarkers = {};
+
+    if (terms.length === 0) return;
+
+    stationData.forEach(({ 역명, 노선, 위도, 경도 }) => {
+      if (terms.some(term => 역명.includes(term))) {
+        const popup = L.popup({
+          closeButton: false,
+          autoClose: false,
+          closeOnClick: false,
+          offset: [0, -18]
+        })
+                .setLatLng([위도, 경도])
+                .setContent(`<b>${역명}</b> <button onclick="this.closest('.leaflet-popup').remove()">❌</button>`)
+                .openOn(map);
+
+        tooltipMarkers[`${makeStationKey(역명, 노선)}`] = popup;
+      }
+    });
+  });
 </script>
 </body>
 </html>

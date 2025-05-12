@@ -2,6 +2,8 @@ package org.railrisk.predictor.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.railrisk.predictor.controller.dto.RiskRequestDto;
+import org.railrisk.predictor.controller.dto.RiskResponseDto;
 import org.railrisk.predictor.domain.Station;
 import org.railrisk.predictor.domain.StationPredict;
 import org.railrisk.predictor.domain.Weather;
@@ -14,10 +16,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Controller
@@ -27,7 +27,7 @@ public class JsController {
     private final ServiceInter serviceInter;
 
     @ResponseBody
-    @GetMapping("/api/station-weathers")
+    @GetMapping("/api/station-weathers") // 역에 대한 날씨데이터 가져오기
     public ResponseEntity<Map<String, Object>> getStationDataWeather(@RequestParam("station_name") String stationName) {
 
         serviceInter.fetchAndSaveWeather();
@@ -42,7 +42,7 @@ public class JsController {
     }
 
     @ResponseBody
-    @GetMapping("/api/station-predicts")
+    @GetMapping("/api/station-predicts") // 역의 위험도 예측 값 가져오기
     public ResponseEntity<List<ModelResponseDto>> getStationPredict(@RequestParam("station_name") String stationName, @RequestParam("station_line") String stationLine) {
         List<ModelRequestDto> requestList = new ArrayList<>();
 
@@ -129,6 +129,25 @@ public class JsController {
         return serviceInter.findAllStationPredicts();
     }
 
+    @ResponseBody
+    @PostMapping("/api/riskScore")
+    public List<RiskResponseDto> getRiskScore(@RequestBody List<RiskRequestDto> stations) {
+        Random random = new Random();
+
+        return stations.stream()
+                .map(s -> {
+                    // 필요한 필드만 사용 (예: 역명, 노선, 지점번호)
+                    String stationName = s.getStationName(); // 역명
+                    String line = s.getLine(); // 노선
+                    int stnNumber = s.getStnNumber(); // 지점번호
+
+                    // 예시: 지점번호나 노선을 기반으로 위험도 계산 가능 (여기선 랜덤)
+                    double riskScore = Math.round(random.nextDouble() * 1000) / 10.0;
+
+                    return new RiskResponseDto(stationName, line, riskScore);
+                })
+                .collect(Collectors.toList());
+    }
 
 
 }
