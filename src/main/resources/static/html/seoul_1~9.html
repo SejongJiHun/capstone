@@ -12,15 +12,17 @@
       position: absolute; top: 10px; right: 10px; z-index: 1000;
       display: flex; gap: 12px; align-items: center;
     }
-    .refresh-button {
-      background: white; color: #007bff;
-      border: 2px solid white; border-radius: 5px;
+    .refresh-button, .reset-button {
+      background: white; border: 2px solid white; border-radius: 5px;
       padding: 6px 12px; font-weight: bold; cursor: pointer;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       transition: background-color 0.2s;
     }
+    .refresh-button { color: #007bff; }
     .refresh-button:hover { background-color: #f0f8ff; }
     .refresh-button:active { background-color: #cce5ff; }
+    .reset-button { color: black; }
+    .reset-button:hover { background-color: #f8f9fa; }
     .button-container {
       display: flex; gap: 6px;
       background: rgba(255, 255, 255, 0.9);
@@ -32,45 +34,47 @@
       transition: background-color 0.2s, color 0.2s;
     }
     .line-button.active-line {
-      color: white !important;
-      background: currentColor;
+      color: white !important; background: currentColor;
     }
     .station-label {
-      font-size: 11px;
-      color: black;
-      text-align: center;
-      pointer-events: none;
+      font-size: 11px; color: black; text-align: center; pointer-events: none;
     }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .spin { animation: spin 1s linear infinite; }
   </style>
 </head>
 <body>
 <div id="map">
   <div class="top-controls">
+    <button class="reset-button">초기화</button>
     <button class="refresh-button">
       <i class="fas fa-rotate-right"></i> 위험도 갱신
     </button>
     <div class="button-container" id="button-container"></div>
   </div>
+  <div style="position: absolute; bottom: 10px; right: 10px; z-index: 1000;">
+    <input id="searchInput" type="text" placeholder="역명 검색 (쉼표로 구분)"
+           style="padding: 6px; border-radius: 5px; border: 1px solid #ccc; width: 220px;" />
+    <button id="searchButton" style="margin-left: 4px; padding: 6px 10px;">검색</button>
+  </div>
 </div>
-
-<!-- Leaflet 먼저 로드 -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-<!-- 모듈 로딩 -->
 <script type="module">
   import { requestRiskScores, updateRiskLabels, makeStationKey } from '../js/riskHandler.js';
 
-  // 지도 상태 복원
-  const savedCenter = JSON.parse(sessionStorage.getItem('mapCenter__seoul') || 'null');
-  const savedZoom = parseInt(sessionStorage.getItem('mapZoom__seoul')) || 11;
+  const mapKey = 'seoul';
+  const savedCenter = JSON.parse(sessionStorage.getItem(`mapCenter__${mapKey}`) || 'null');
+  const savedZoom = parseInt(sessionStorage.getItem(`mapZoom__${mapKey}`)) || 11;
 
   const map = L.map('map').setView(savedCenter || [37.5665, 126.9780], savedZoom);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.3 }).addTo(map);
 
-  // 지도 이동/확대 시 저장
   map.on('moveend', () => {
-    sessionStorage.setItem('mapCenter__seoul', JSON.stringify(map.getCenter()));
-    sessionStorage.setItem('mapZoom__seoul', map.getZoom());
+    sessionStorage.setItem(`mapCenter__${mapKey}`, JSON.stringify(map.getCenter()));
+    sessionStorage.setItem(`mapZoom__${mapKey}`, map.getZoom());
   });
 
   const lineColors = {
@@ -85,7 +89,7 @@
     "수도권도시철도 9호선": "#BDB092"
   };
 
-  const lineGroups = {}, lineCoords = {}, stationLabelLayers = {};
+  let lineGroups = {}, lineCoords = {}, stationLabelLayers = {}, tooltipMarkers = {};
   const allLayers = L.layerGroup().addTo(map);
   let stationData = [];
   let activeLine = null;
@@ -96,8 +100,7 @@
             stationData = data;
             drawMap(data);
 
-            // 위험도 복원
-            const cached = sessionStorage.getItem('riskData__seoul');
+            const cached = sessionStorage.getItem(`riskData__${mapKey}`);
             if (cached) {
               updateRiskLabels(JSON.parse(cached), stationLabelLayers);
             }
@@ -112,7 +115,6 @@
         lineGroups[노선] = L.layerGroup();
         lineCoords[노선] = [];
       }
-
       lineCoords[노선].push([위도, 경도]);
 
       const hoverMarker = L.circleMarker([위도, 경도], {
@@ -138,7 +140,6 @@
 
       const key = makeStationKey(역명, 노선);
       stationLabelLayers[key] = labelMarker;
-
       lineGroups[노선].addLayer(labelMarker);
     });
 
@@ -207,10 +208,53 @@
     });
   }
 
+  document.querySelector('.reset-button').addEventListener('click', () => {
+    if (!confirm("서울 지역만 초기화됩니다. 진행할까요?")) return;
+    sessionStorage.removeItem(`mapCenter__${mapKey}`);
+    sessionStorage.removeItem(`mapZoom__${mapKey}`);
+    sessionStorage.removeItem(`riskData__${mapKey}`);
+    location.reload();
+  });
+
   document.querySelector('.refresh-button').addEventListener('click', () => {
+    const btn = document.querySelector('.refresh-button');
+    if (btn.disabled) return;
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-rotate-right spin"></i> 갱신 중...`;
+
     requestRiskScores(stationData, riskData => {
       updateRiskLabels(riskData, stationLabelLayers);
-      sessionStorage.setItem('riskData__seoul', JSON.stringify(riskData));
+      sessionStorage.setItem(`riskData__${mapKey}`, JSON.stringify(riskData));
+
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fas fa-rotate-right"></i> 위험도 갱신`;
+    });
+  });
+
+  document.getElementById('searchButton').addEventListener('click', () => {
+    const input = document.getElementById('searchInput').value.trim();
+    const terms = input.split(',').map(t => t.trim()).filter(t => t !== '');
+
+    Object.values(tooltipMarkers).forEach(marker => map.removeLayer(marker));
+    tooltipMarkers = {};
+
+    if (terms.length === 0) return;
+
+    stationData.forEach(({ 역명, 노선, 위도, 경도 }) => {
+      if (terms.some(term => 역명.includes(term))) {
+        const popup = L.popup({
+          closeButton: false,
+          autoClose: false,
+          closeOnClick: false,
+          offset: [0, -18]
+        })
+                .setLatLng([위도, 경도])
+                .setContent(`<b>${역명}</b> <button onclick="this.closest('.leaflet-popup').remove()">❌</button>`)
+                .openOn(map);
+
+        tooltipMarkers[`${makeStationKey(역명, 노선)}`] = popup;
+      }
     });
   });
 </script>
