@@ -12,7 +12,7 @@ public interface WeatherRepositoryInter extends JpaRepository<Weather, Long> {
     // 특정 시간의 모든 지점 데이터 조회
     List<Weather> findByTime(String time);
 
-    // 특정 지점의 전체 이력 조회
+    // 특정 지점의 데이터 조회
     Optional<Weather> findByStn(String stn);
 
     // 특정 지점의 특정 시간 데이터 1건 조회

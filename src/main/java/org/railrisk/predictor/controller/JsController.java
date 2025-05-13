@@ -123,30 +123,56 @@ public class JsController {
         return ResponseEntity.ok(response);
     }
 
-    @ResponseBody
-    @GetMapping("/api/station-risks")
-    public List<StationPredict> getAllStationRisk() {
-        return serviceInter.findAllStationPredicts();
-    }
 
     @ResponseBody
-    @PostMapping("/api/riskScore")
+    @PostMapping("/api/riskScore") // 위험도 갱신 버튼
     public List<RiskResponseDto> getRiskScore(@RequestBody List<RiskRequestDto> stations) {
+        serviceInter.fetchAndSaveWeather(); // 날씨 갱신
+
+        List<ModelRequestDto> requestList = new ArrayList<>(); // 모델에 전달할 리스트
+
+
+        // 1. 입력된 역 리스트를 기반으로 ModelRequestDto 리스트 생성
+        log.info("입력된 역 리스트를 기반으로 ModelRequestDto 리스트 생성 시작");
+        for (RiskRequestDto s : stations) {
+            String stationName = s.getStationName();
+            String line = s.getLine();
+            String stnNumber = s.getStnNumber();
+
+            Weather weather = serviceInter.findWeatherByStn(stnNumber);
+            Station station = serviceInter.findStationByStationName(stationName);
+
+            ModelRequestDto modelRequestDto = ModelRequestDtoParser.modelRequestDtoParser(weather, station, line);
+            requestList.add(modelRequestDto);
+        }
+        log.info("입력된 역 리스트를 기반으로 ModelRequestDto 리스트 생성 완료");
+
+
+
+        // 2. 모델에 입력값 전달 → 예측 결과 리스트 받기
+        List<ModelResponseDto> modelOutputs = serviceInter.sendDataToModel(requestList);
+
+        // 3. 프론트에 전달할 결과 리스트 생성
+        List<RiskResponseDto> resultList = new ArrayList<>();
+
         Random random = new Random();
 
-        return stations.stream()
-                .map(s -> {
-                    // 필요한 필드만 사용 (예: 역명, 노선, 지점번호)
-                    String stationName = s.getStationName(); // 역명
-                    String line = s.getLine(); // 노선
-                    int stnNumber = s.getStnNumber(); // 지점번호
+        for (int i = 0; i < stations.size(); i++) {
+            RiskRequestDto input = stations.get(i);
+            ModelResponseDto modelOutput = modelOutputs.get(i);
 
-                    // 예시: 지점번호나 노선을 기반으로 위험도 계산 가능 (여기선 랜덤)
-                    double riskScore = Math.round(random.nextDouble() * 1000) / 10.0;
+            double riskScore = Math.round(random.nextDouble() * 1000) / 10.0;
 
-                    return new RiskResponseDto(stationName, line, riskScore);
-                })
-                .collect(Collectors.toList());
+            RiskResponseDto riskResponseDto = new RiskResponseDto(
+                    input.getStationName(),
+                    input.getLine(),
+                    riskScore,
+                    modelOutput
+            );
+            resultList.add(riskResponseDto);
+        }
+
+        return resultList;
     }
 
 

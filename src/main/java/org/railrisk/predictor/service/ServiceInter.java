@@ -16,6 +16,9 @@ public interface ServiceInter {
     // 특정 역의 날씨 데이터 가져오기
     Weather findWeatherByName(String stationName);
 
+    // 특정 지점의 날씨 데이터 가져오기
+    Weather findWeatherByStn(String stn);
+
     // 모델과 통신
     List<ModelResponseDto> sendDataToModel(List<ModelRequestDto> requestList);
 

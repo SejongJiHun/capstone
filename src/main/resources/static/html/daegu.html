@@ -8,50 +8,91 @@
   <style>
     body { margin: 0; overflow: hidden; }
     #map { height: 100vh; position: relative; }
+
     .top-controls {
       position: absolute; top: 10px; right: 10px; z-index: 1000;
       display: flex; gap: 12px; align-items: center;
     }
-    .refresh-button {
-      background: white; color: #007bff;
-      border: 2px solid white; border-radius: 5px;
-      padding: 6px 12px; font-weight: bold; cursor: pointer;
+
+    .refresh-button, .reset-button {
+      background: white;
+      border: 2px solid white;
+      border-radius: 5px;
+      padding: 6px 12px;
+      font-weight: bold;
+      cursor: pointer;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       transition: background-color 0.2s;
     }
-    .refresh-button:hover { background-color: #f0f8ff; }
-    .refresh-button:active { background-color: #cce5ff; }
+
+    .refresh-button {
+      color: #007bff;
+    }
+
+    .reset-button {
+      color: black;
+    }
+
+    .refresh-button:hover,
+    .reset-button:hover {
+      background-color: #f0f8ff;
+    }
+
+    .refresh-button:active,
+    .reset-button:active {
+      background-color: #cce5ff;
+    }
+
     .button-container {
       display: flex; gap: 6px;
       background: rgba(255, 255, 255, 0.9);
       padding: 6px; border-radius: 8px;
     }
+
     .line-button {
       padding: 6px 10px; border: 2px solid; font-weight: bold;
       border-radius: 5px; cursor: pointer; background: white; color: black;
       transition: background-color 0.2s, color 0.2s;
     }
+
     .line-button.active-line {
       color: white !important;
       background: currentColor;
     }
+
     .station-label {
       font-size: 11px;
       color: black;
       text-align: center;
       pointer-events: none;
     }
+
+    /* 회전 애니메이션 */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .spin {
+      animation: spin 1s linear infinite;
+    }
   </style>
 </head>
 <body>
 <div id="map">
   <div class="top-controls">
+    <!-- 초기화 버튼 -->
+    <button class="reset-button">
+      초기화
+    </button>
+    <!-- 위험도 갱신 버튼 -->
     <button class="refresh-button">
       <i class="fas fa-rotate-right"></i> 위험도 갱신
     </button>
+    <!-- 노선 필터 버튼들 -->
     <div class="button-container" id="button-container"></div>
   </div>
-  <!-- ✅ 검색창 -->
+
+  <!-- 검색창 -->
   <div style="position: absolute; bottom: 10px; right: 10px; z-index: 1000;">
     <input id="searchInput" type="text" placeholder="역명 검색 (쉼표로 구분)"
            style="padding: 6px; border-radius: 5px; border: 1px solid #ccc; width: 220px;" />
@@ -65,7 +106,6 @@
   import { requestRiskScores, updateRiskLabels, makeStationKey } from '../js/riskHandler.js';
 
   const mapKey = 'daegu';
-
   const savedCenter = JSON.parse(sessionStorage.getItem(`mapCenter__${mapKey}`) || 'null');
   const savedZoom = parseInt(sessionStorage.getItem(`mapZoom__${mapKey}`)) || 11;
 
@@ -205,13 +245,33 @@
     });
   }
 
+  // 초기화 버튼: 경고창 + 세션 삭제
+  document.querySelector('.reset-button').addEventListener('click', () => {
+    if (!confirm("대구 지역만 초기화됩니다. 진행할까요?")) return;
+    sessionStorage.removeItem('mapCenter__daegu');
+    sessionStorage.removeItem('mapZoom__daegu');
+    sessionStorage.removeItem('riskData__daegu');
+    location.reload();
+  });
+
+  // 위험도 갱신 버튼: 애니메이션 + 비활성화
   document.querySelector('.refresh-button').addEventListener('click', () => {
+    const btn = document.querySelector('.refresh-button');
+    if (btn.disabled) return;
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-rotate-right spin"></i> 갱신 중...`;
+
     requestRiskScores(stationData, riskData => {
       updateRiskLabels(riskData, stationLabelLayers);
       sessionStorage.setItem(`riskData__${mapKey}`, JSON.stringify(riskData));
+
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fas fa-rotate-right"></i> 위험도 갱신`;
     });
   });
 
+  // 검색 버튼
   document.getElementById('searchButton').addEventListener('click', () => {
     const input = document.getElementById('searchInput').value.trim();
     const terms = input.split(',').map(t => t.trim()).filter(t => t !== '');

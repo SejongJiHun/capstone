@@ -67,6 +67,15 @@ public class ServiceImpl implements ServiceInter{
         return weather;
     }
 
+    @Override // 지점번호로 날씨 데이터 조회
+    public Weather findWeatherByStn(String stn) {
+
+        Weather weather = weatherRepositoryInter.findByStn(stn)
+                .orElseThrow(() -> new IllegalArgumentException("해당 역의 날씨 데이터가 존재하지 않습니다: " + stn));
+
+        return weather;
+    }
+
 
     private final RestTemplate restTemplate = new RestTemplate();
     //private final String flaskUrl = "http://localhost:5000/predict"; // Flask 서버 주소
