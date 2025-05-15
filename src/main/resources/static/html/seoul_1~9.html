@@ -5,6 +5,7 @@
   <title>서울 도시철도</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
   <style>
     body { margin: 0; overflow: hidden; }
     #map { height: 100vh; position: relative; }
@@ -16,7 +17,6 @@
       background: white; border: 2px solid white; border-radius: 5px;
       padding: 6px 12px; font-weight: bold; cursor: pointer;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      transition: background-color 0.2s;
     }
     .refresh-button { color: #007bff; }
     .refresh-button:hover { background-color: #f0f8ff; }
@@ -39,11 +39,11 @@
     .station-label {
       font-size: 11px; color: black; text-align: center; pointer-events: none;
     }
+    .spin { animation: spin 1s linear infinite; }
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    .spin { animation: spin 1s linear infinite; }
   </style>
 </head>
 <body>
@@ -89,12 +89,12 @@
     "수도권도시철도 9호선": "#BDB092"
   };
 
-  let lineGroups = {}, lineCoords = {}, stationLabelLayers = {}, tooltipMarkers = {};
+  let lineGroups = {}, lineCoords = {}, stationLabelLayers = {}, tooltipMarkers = {}, extraLines = [];
   const allLayers = L.layerGroup().addTo(map);
   let stationData = [];
   let activeLine = null;
 
-  fetch('../data/line/seoul_1~9.json')
+  fetch('../data/line/seoul_1~9_with_group.json')
           .then(res => res.json())
           .then(data => {
             stationData = data;
@@ -108,62 +108,90 @@
 
   function drawMap(data) {
     data.forEach(station => {
-      const { 위도, 경도, 역명, 노선 } = station;
+      const { 위도, 경도, 역명, 노선, group } = station;
       const color = lineColors[노선] || 'gray';
+      const groupKey = `${노선}-${group}`;
 
-      if (!lineGroups[노선]) {
-        lineGroups[노선] = L.layerGroup();
-        lineCoords[노선] = [];
+      if (!lineGroups[groupKey]) {
+        lineGroups[groupKey] = L.layerGroup();
+        lineCoords[groupKey] = [];
       }
-      lineCoords[노선].push([위도, 경도]);
+      lineCoords[groupKey].push([위도, 경도]);
 
       const hoverMarker = L.circleMarker([위도, 경도], {
         radius: 10, fillOpacity: 0, opacity: 0, stroke: false
       }).bindTooltip(`${역명}`, { direction: 'top', offset: [0, -8], opacity: 0.95 });
       hoverMarker._isTooltipMarker = true;
-      lineGroups[노선].addLayer(hoverMarker);
+      lineGroups[groupKey].addLayer(hoverMarker);
 
       const visibleMarker = L.circleMarker([위도, 경도], {
         radius: 2, color, fillColor: color, fillOpacity: 1
       });
       visibleMarker._type = 'station';
       visibleMarker._line = 노선;
-      lineGroups[노선].addLayer(visibleMarker);
+      lineGroups[groupKey].addLayer(visibleMarker);
 
       const labelIcon = L.divIcon({
         className: `station-label label-${노선.replace(/\s/g, '_')}`,
         html: `<div>${역명}</div>`,
-        iconSize: [60, 20],
-        iconAnchor: [30, -12]
+        iconSize: [60, 20], iconAnchor: [30, -12]
       });
       const labelMarker = L.marker([위도, 경도], { icon: labelIcon });
-
       const key = makeStationKey(역명, 노선);
       stationLabelLayers[key] = labelMarker;
-      lineGroups[노선].addLayer(labelMarker);
+      lineGroups[groupKey].addLayer(labelMarker);
     });
 
-    Object.entries(lineCoords).forEach(([노선, coords]) => {
+    Object.entries(lineCoords).forEach(([groupKey, coords]) => {
+      const 노선 = groupKey.split('-')[0];
       const polyline = L.polyline(coords, { color: lineColors[노선] || 'gray', weight: 3, opacity: 0.7 });
       polyline._type = 'line';
       polyline._line = 노선;
-      lineGroups[노선].addLayer(polyline);
+      lineGroups[groupKey].addLayer(polyline);
     });
 
     Object.values(lineGroups).forEach(g => g.addTo(allLayers));
 
+    const connectionPairs = [
+      ["수도권도시철도 1호선", "구로", "구일"],
+      ["수도권도시철도 1호선", "구로", "가산디지털단지"],
+      ["수도권도시철도 1호선", "금천구청", "석수"],
+      ["수도권도시철도 1호선", "병점", "세마"],
+      ["수도권도시철도 2호선", "도림천", "신도림"],
+      ["수도권도시철도 2호선", "용답", "성수"],
+      ["수도권도시철도 5호선", "강동", "둔촌동"],
+      ["수도권도시철도 2호선", "시청", "을지로입구"]
+    ];
+    connectionPairs.forEach(([노선, stationA, stationB]) => {
+      const pointA = stationData.find(s => s.역명 === stationA && s.노선 === 노선);
+      const pointB = stationData.find(s => s.역명 === stationB && s.노선 === 노선);
+      if (pointA && pointB) {
+        const line = L.polyline(
+                [[pointA.위도, pointA.경도], [pointB.위도, pointB.경도]],
+                {
+                  color: lineColors[노선] || 'gray',
+                  weight: 3,
+                  opacity: 0.7
+                }
+        );
+        line._type = 'extra';
+        line._line = 노선;
+        extraLines.push(line);
+        allLayers.addLayer(line);
+      }
+    });
+
     const container = document.getElementById("button-container");
-    Object.keys(lineGroups).forEach(노선 => {
+    const uniqueLines = [...new Set(data.map(d => d.노선))];
+    uniqueLines.forEach(노선 => {
       const color = lineColors[노선] || 'gray';
       const btn = document.createElement("button");
       const label = 노선.replace("수도권도시철도 ", "");
-
       btn.textContent = label;
       btn.className = "line-button";
       btn.style.borderColor = color;
       btn.style.color = color;
       btn.setAttribute("data-line", 노선);
-
       btn.onclick = () => {
         document.querySelectorAll(".line-button").forEach(b => {
           const line = b.getAttribute("data-line");
@@ -172,7 +200,6 @@
           b.style.backgroundColor = "white";
           b.style.color = c;
         });
-
         if (activeLine === 노선) {
           Object.values(lineGroups).forEach(group => {
             group.eachLayer(layer => {
@@ -181,21 +208,31 @@
               }
             });
           });
+          extraLines.forEach(line => {
+            line.setStyle({ opacity: 1, fillOpacity: 1 });
+          });
           document.querySelectorAll('.station-label').forEach(el => el.style.opacity = '1');
           activeLine = null;
         } else {
           btn.classList.add("active-line");
           btn.style.color = "white";
           btn.style.backgroundColor = color;
-
-          Object.entries(lineGroups).forEach(([line, group]) => {
+          Object.entries(lineGroups).forEach(([key, group]) => {
+            const [lineName] = key.split('-');
+            const isActive = lineName === 노선;
             group.eachLayer(layer => {
               if (layer.setStyle && !layer._isTooltipMarker) {
                 layer.setStyle({
-                  opacity: (line === 노선) ? 1 : 0.1,
-                  fillOpacity: (line === 노선) ? 1 : 0.1
+                  opacity: isActive ? 1 : 0.1,
+                  fillOpacity: isActive ? 1 : 0.1
                 });
               }
+            });
+          });
+          extraLines.forEach(line => {
+            line.setStyle({
+              opacity: (line._line === 노선) ? 1 : 0.1,
+              fillOpacity: (line._line === 노선) ? 1 : 0.1
             });
           });
           document.querySelectorAll('.station-label').forEach(el => el.style.opacity = '0.1');
@@ -203,7 +240,6 @@
           activeLine = 노선;
         }
       };
-
       container.appendChild(btn);
     });
   }
@@ -219,14 +255,12 @@
   document.querySelector('.refresh-button').addEventListener('click', () => {
     const btn = document.querySelector('.refresh-button');
     if (btn.disabled) return;
-
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-rotate-right spin"></i> 갱신 중...`;
 
     requestRiskScores(stationData, riskData => {
       updateRiskLabels(riskData, stationLabelLayers);
       sessionStorage.setItem(`riskData__${mapKey}`, JSON.stringify(riskData));
-
       btn.disabled = false;
       btn.innerHTML = `<i class="fas fa-rotate-right"></i> 위험도 갱신`;
     });
@@ -235,24 +269,15 @@
   document.getElementById('searchButton').addEventListener('click', () => {
     const input = document.getElementById('searchInput').value.trim();
     const terms = input.split(',').map(t => t.trim()).filter(t => t !== '');
-
     Object.values(tooltipMarkers).forEach(marker => map.removeLayer(marker));
     tooltipMarkers = {};
-
     if (terms.length === 0) return;
-
     stationData.forEach(({ 역명, 노선, 위도, 경도 }) => {
       if (terms.some(term => 역명.includes(term))) {
-        const popup = L.popup({
-          closeButton: false,
-          autoClose: false,
-          closeOnClick: false,
-          offset: [0, -18]
-        })
+        const popup = L.popup({ closeButton: false, autoClose: false, closeOnClick: false, offset: [0, -18] })
                 .setLatLng([위도, 경도])
-                .setContent(`<b>${역명}</b> <button onclick="this.closest('.leaflet-popup').remove()">❌</button>`)
+                .setContent(`<b>${역명}</b> <button onclick="this.closest('.leaflet-popup').remove()">\u274c</button>`)
                 .openOn(map);
-
         tooltipMarkers[`${makeStationKey(역명, 노선)}`] = popup;
       }
     });
