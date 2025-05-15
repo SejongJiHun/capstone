@@ -1,13 +1,13 @@
 // 🚀 공통 데이터 가져오기
 fetch("../data/일평균채움_최종.json")
-  .then(res => res.json())
-  .then(data => {
-    drawChartA(data);
-    drawChartD(data);
-    drawChartE(data);
-    drawChartF(data);
-    drawChartG(data);
-  });
+    .then(res => res.json())
+    .then(data => {
+      drawChartA(data);
+      drawChartD(data);
+      drawChartE(data);
+      drawChartF(data);
+      drawChartG(data);
+    });
 
 
 function drawChartA(data) {
@@ -254,7 +254,7 @@ function drawChartF(data) {
 }
 
 
-// 상세
+상세
 function drawChartG(data) {
   const counts = {};
   data.forEach(d => {
@@ -317,5 +317,3 @@ function drawChartG(data) {
     plugins: [ChartDataLabels]
   });
 }
-
-

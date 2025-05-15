@@ -3,55 +3,140 @@
 <head>
   <meta charset="UTF-8">
   <title>철도 사고 예측 시스템</title>
-  <!-- 과거통계용 및 전체적 css -->
-  <link rel="stylesheet" href="../css/style.css">
-  <!-- 날씨컨테이너용 css -->
-  <!--<link rel="stylesheet" href="../css/weather.css">-->
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <script src="../js/chart.js"></script>
+  <script src="../js/boxbc.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f6f9;
+      color: #1f2937;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      text-align: center;
+      color: #1e293b;
+      margin-bottom: 12px;
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 24px;
+    }
+
+    .box {
+      background-color: #ffffff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+      min-height: 200px;
+    }
+
+    .box.a { grid-column: 1; grid-row: 1; }
+    .box.b { grid-column: 2; grid-row: 1; }
+    .box.c {
+      grid-column: 3;
+      grid-row: 1 / span 2;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: flex-start;
+    }
+
+    .box.d { grid-column: 1; grid-row: 2; }
+    .box.e { grid-column: 2; grid-row: 2; }
+    .box.f {
+      grid-column: 1 / span 2;
+      grid-row: 3;
+      min-height: 300px; /* 기본 box보다 높게 설정 */
+    }
+
+    .box.c input {
+      padding: 12px 16px;
+      font-size: 15px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background-color: #f9fafb;
+      outline: none;
+    }
+
+    .box.c input:focus {
+      background-color: #ffffff;
+      border-color: #60a5fa;
+    }
+
+    .box.c button {
+      padding: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .box.c button:hover {
+      background-color: #1d4ed8;
+    }
+
+    #predictResult {
+      font-weight: 600;
+      font-size: 15px;
+      color: #b91c1c;
+      text-align: center;
+    }
+
+    .weather_container {
+      font-size: 15px;
+      color: #1f2937;
+      text-align: center;
+    }
+  </style>
 </head>
-<!-- chart.js-->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-
-
-<!-- plotly.js-->
-<script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
-
-
-<script src="../js/chart.js"></script>
-<script src="../js/boxbc.js"></script>
-
-<!--<script src="../js/chart_plotly_version.js"></script>-->
-
 <body>
 <div class="container">
+  <h1 class="title">통계 및 위험도 검색</h1>
 
-  <h1 class = "title"> 철도 사고 예측 대시보드 </h1>
-  <div class="main1">
+  <div class="top-grid">
     <div class="box a"><canvas id="chartA"></canvas></div>
+    <div class="box d"><canvas id="chartD"></canvas></div>
+
+    <div class="box c">
+      <input type="text" id="stationNameInput" placeholder="역명 입력 (예: 서울)">
+      <input type="text" id="stationLineInput" placeholder="노선 입력 (예: 수도권도시전철 1호선)">
+      <button onclick="handleQuery();">검색</button>
+      <div id="predictResult">위험도 결과: -</div>
+    </div>
+
     <div class="box b">
       <div class="weather_container" id="weatherInfo">날씨 정보: -</div>
     </div>
-    <div class="box c">
-      <div>
-        <input type="text" id="stationNameInput" placeholder="역명 입력(예: 서울 / '역' 제외)">
-        <input type="text" id="stationLineInput" placeholder="노선 입력">
-        <button onclick="handleQuery();">조회</button>
-      </div>
-      <div id="predictResult">위험도 결과: -</div>
-    </div>
-    <div class="box d"><canvas id="chartD"></canvas></div>
+
     <div class="box e"><canvas id="chartE"></canvas></div>
-  </div>
-
-  <div class="main2">
     <div class="box f"><canvas id="chartF"></canvas></div>
-    <div class="box g"><canvas id="chartG"></canvas></div>
   </div>
-
-
 </div>
-
-
-
 </body>
 </html>
