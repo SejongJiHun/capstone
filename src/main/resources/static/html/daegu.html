@@ -67,7 +67,6 @@
       pointer-events: none;
     }
 
-    /* 회전 애니메이션 */
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
@@ -80,23 +79,21 @@
 <body>
 <div id="map">
   <div class="top-controls">
-    <!-- 초기화 버튼 -->
-    <button class="reset-button">
-      초기화
-    </button>
-    <!-- 위험도 갱신 버튼 -->
-    <button class="refresh-button">
-      <i class="fas fa-rotate-right"></i> 위험도 갱신
-    </button>
-    <!-- 노선 필터 버튼들 -->
+    <button class="reset-button">초기화</button>
+    <button class="refresh-button"><i class="fas fa-rotate-right"></i> 위험도 갱신</button>
     <div class="button-container" id="button-container"></div>
   </div>
 
-  <!-- 검색창 -->
-  <div style="position: absolute; bottom: 10px; right: 10px; z-index: 1000;">
-    <input id="searchInput" type="text" placeholder="위치 찾기. 역명 입력 (쉼표로 구분)"
-           style="padding: 6px; border-radius: 5px; border: 1px solid #ccc; width: 220px;" />
-    <button id="searchButton" style="margin-left: 4px; padding: 6px 10px;">검색</button>
+  <!-- 안내문구 + 검색창 묶음 -->
+  <div style="position: absolute; bottom: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-start;">
+    <span style="font-size: 11px; color: gray; margin-bottom: 4px;">
+      ※ 입력 없이 검색하면 지도에서 마커가 사라집니다.
+    </span>
+    <div>
+      <input id="searchInput" type="text" placeholder="위치 찾기. 역명 입력 (쉼표로 구분)"
+             style="padding: 6px; border-radius: 5px; border: 1px solid #ccc; width: 220px;" />
+      <button id="searchButton" style="margin-left: 4px; padding: 6px 10px;">검색</button>
+    </div>
   </div>
 </div>
 
@@ -245,7 +242,6 @@
     });
   }
 
-  // 초기화 버튼: 경고창 + 세션 삭제
   document.querySelector('.reset-button').addEventListener('click', () => {
     if (!confirm("대구 지역만 초기화됩니다. 진행할까요?")) return;
     sessionStorage.removeItem('mapCenter__daegu');
@@ -254,7 +250,6 @@
     location.reload();
   });
 
-  // 위험도 갱신 버튼: 애니메이션 + 비활성화
   document.querySelector('.refresh-button').addEventListener('click', () => {
     const btn = document.querySelector('.refresh-button');
     if (btn.disabled) return;
@@ -271,9 +266,9 @@
     });
   });
 
-  // 검색 버튼
   document.getElementById('searchButton').addEventListener('click', () => {
-    const input = document.getElementById('searchInput').value.trim();
+    const inputEl = document.getElementById('searchInput');
+    const input = inputEl.value.trim();
     const terms = input.split(',').map(t => t.trim()).filter(t => t !== '');
 
     Object.values(tooltipMarkers).forEach(marker => map.removeLayer(marker));
@@ -296,6 +291,15 @@
         tooltipMarkers[`${makeStationKey(역명, 노선)}`] = popup;
       }
     });
+
+    // 검색 후 입력창 비우기
+    inputEl.value = '';
+  });
+
+  document.getElementById('searchInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      document.getElementById('searchButton').click();
+    }
   });
 </script>
 </body>

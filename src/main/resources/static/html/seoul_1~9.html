@@ -50,17 +50,23 @@
 <div id="map">
   <div class="top-controls">
     <button class="reset-button">초기화</button>
-    <button class="refresh-button">
-      <i class="fas fa-rotate-right"></i> 위험도 갱신
-    </button>
+    <button class="refresh-button"><i class="fas fa-rotate-right"></i> 위험도 갱신</button>
     <div class="button-container" id="button-container"></div>
   </div>
-  <div style="position: absolute; bottom: 10px; right: 10px; z-index: 1000;">
-    <input id="searchInput" type="text" placeholder="위치 찾기. 역명 입력 (쉼표로 구분)"
-           style="padding: 6px; border-radius: 5px; border: 1px solid #ccc; width: 220px;" />
-    <button id="searchButton" style="margin-left: 4px; padding: 6px 10px;">검색</button>
+
+  <!-- 안내문구 + 검색창 -->
+  <div style="position: absolute; bottom: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-start;">
+    <span style="font-size: 11px; color: gray; margin-bottom: 4px;">
+      ※ 입력 없이 검색하면 지도에서 마커가 사라집니다.
+    </span>
+    <div>
+      <input id="searchInput" type="text" placeholder="위치 찾기. 역명 입력 (쉼표로 구분)"
+             style="padding: 6px; border-radius: 5px; border: 1px solid #ccc; width: 220px;" />
+      <button id="searchButton" style="margin-left: 4px; padding: 6px 10px;">검색</button>
+    </div>
   </div>
 </div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script type="module">
   import { requestRiskScores, updateRiskLabels, makeStationKey } from '../js/riskHandler.js';
@@ -168,11 +174,7 @@
       if (pointA && pointB) {
         const line = L.polyline(
                 [[pointA.위도, pointA.경도], [pointB.위도, pointB.경도]],
-                {
-                  color: lineColors[노선] || 'gray',
-                  weight: 3,
-                  opacity: 0.7
-                }
+                { color: lineColors[노선] || 'gray', weight: 3, opacity: 0.7 }
         );
         line._type = 'extra';
         line._line = 노선;
@@ -200,6 +202,7 @@
           b.style.backgroundColor = "white";
           b.style.color = c;
         });
+
         if (activeLine === 노선) {
           Object.values(lineGroups).forEach(group => {
             group.eachLayer(layer => {
@@ -208,9 +211,7 @@
               }
             });
           });
-          extraLines.forEach(line => {
-            line.setStyle({ opacity: 1, fillOpacity: 1 });
-          });
+          extraLines.forEach(line => line.setStyle({ opacity: 1 }));
           document.querySelectorAll('.station-label').forEach(el => el.style.opacity = '1');
           activeLine = null;
         } else {
@@ -231,8 +232,7 @@
           });
           extraLines.forEach(line => {
             line.setStyle({
-              opacity: (line._line === 노선) ? 1 : 0.1,
-              fillOpacity: (line._line === 노선) ? 1 : 0.1
+              opacity: (line._line === 노선) ? 1 : 0.1
             });
           });
           document.querySelectorAll('.station-label').forEach(el => el.style.opacity = '0.1');
@@ -267,20 +267,38 @@
   });
 
   document.getElementById('searchButton').addEventListener('click', () => {
-    const input = document.getElementById('searchInput').value.trim();
+    const inputEl = document.getElementById('searchInput');
+    const input = inputEl.value.trim();
     const terms = input.split(',').map(t => t.trim()).filter(t => t !== '');
+
     Object.values(tooltipMarkers).forEach(marker => map.removeLayer(marker));
     tooltipMarkers = {};
+
     if (terms.length === 0) return;
+
     stationData.forEach(({ 역명, 노선, 위도, 경도 }) => {
       if (terms.some(term => 역명.includes(term))) {
-        const popup = L.popup({ closeButton: false, autoClose: false, closeOnClick: false, offset: [0, -18] })
+        const popup = L.popup({
+          closeButton: false,
+          autoClose: false,
+          closeOnClick: false,
+          offset: [0, -18]
+        })
                 .setLatLng([위도, 경도])
-                .setContent(`<b>${역명}</b> <button onclick="this.closest('.leaflet-popup').remove()">\u274c</button>`)
+                .setContent(`<b>${역명}</b> <button onclick="this.closest('.leaflet-popup').remove()">❌</button>`)
                 .openOn(map);
+
         tooltipMarkers[`${makeStationKey(역명, 노선)}`] = popup;
       }
     });
+
+    inputEl.value = ''; // 검색 후 입력창 비움
+  });
+
+  document.getElementById('searchInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      document.getElementById('searchButton').click();
+    }
   });
 </script>
 </body>
