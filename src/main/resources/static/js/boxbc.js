@@ -22,59 +22,74 @@ async function fetchWeatherData() {
     const region = data.station;  // 지역명 (stnName)
 
     const weatherInfoHTML = `
-        <div class="weather_container">
-          <h3><strong>${stationName}역 날씨 / ${region}</strong></h3>
-          <div class="time">${formatTime(w.time)}</div>
-          <div class="weather_box1">
-            <div class="weather_box2">
-              <div>기온: ${w.ta} °C</div>
-              <div>일강수량: ${w.rn_day} mm</div>
-              <div>습도: ${w.hm} %</div>
-              <div>풍속: ${w.ws} m/s</div>
-            </div>
-            <div class="weather_box3">
-              <div>기압: ${w.pa} hPa</div>
-              <div>일신적설: ${w.sd_day} cm</div>
-              <div>지면온도: ${w.ts} °C</div>
-              <div>안개유무: ${w.fog === "1" ? "있음" : "없음"}</div>
-            </div>
-          </div>
-        </div>
-    `;
+  <div class="weather-card">
+    <div class="weather-header">
+      <h3>${stationName}역 날씨</h3>
+      <span class="weather-region">${region} (${formatTime(w.time)})</span>
+    </div>
+    <div class="weather-content">
+      <div class="weather-column">
+        <div>🌡️ 기온: ${w.ta} °C</div>
+        <div>🌧️ 일강수량: ${w.rn_day} mm</div>
+        <div>💧 습도: ${w.hm} %</div>
+        <div>🌬️ 풍속: ${w.ws} m/s</div>
+      </div>
+      <div class="weather-column">
+        <div>📈 기압: ${w.pa} hPa</div>
+        <div>❄️ 일신적설: ${w.sd_day} cm</div>
+        <div>🌎 지면온도: ${w.ts} °C</div>
+        <div>🌫️ 안개: ${w.fog === "1" ? "있음" : "없음"}</div>
+      </div>
+    </div>
+  </div>
+`;
     document.getElementById("weatherInfo").innerHTML = weatherInfoHTML;
 }
 
 // 예측 API 호출 (비동기)
 async function fetchPredictionData() {
     const stationName = document.getElementById("stationNameInput").value;
+    const railType = document.getElementById("railTypeSelect").value;
     const stationLine = document.getElementById("stationLineInput").value;
 
-    const res = await fetch(`/api/station-predicts?station_name=${encodeURIComponent(stationName)}&station_line=${encodeURIComponent(stationLine)}`);
+    if (!stationName || !railType || !stationLine) {
+        alert("역명, 철도구분, 노선을 모두 입력해주세요.");
+        return;
+    }
+
+    const res =
+        await fetch(`/api/station-predicts?station_name=${encodeURIComponent(stationName)}&rail_type=${encodeURIComponent(railType)}&station_line=${encodeURIComponent(stationLine)}`);
     if (!res.ok) throw new Error("예측 응답 실패");
 
     const data = await res.json();
+    console.log("📦 Spring 응답:", data);
+
+
     if (!data || data.length === 0) {
         document.getElementById("predictResult").innerText = "예측 결과 없음";
         return;
     }
 
     const prediction = data[0];
+    console.log(prediction.predicted_cause);  // 이게 undefined면 key 이름이 문제
+    console.log(prediction.damage_risk);
+    console.log(prediction.class_risk);
+    console.log(prediction.combined_risk);
+
+
     const round = (val) => Math.round(val * 100) / 100;
 
     const resultHTML = `
-        <div class="predict_container">
-            <h3><strong>${stationName}역 위험도 예측 결과</strong></h3>
-            <div>원인 그룹: ${prediction.group}</div>
-            <div>세부 원인: ${prediction.cause}</div>
-            <div>상세 요인: ${prediction.detail}</div>
-            <div><strong>피해 규모 예측</strong></div>
-            <div>- 피해액: ${round(prediction.regression.total_damage)} 백만원</div>
-            <div>- 사망자 수: ${round(prediction.regression.deaths)} 명</div>
-            <div>- 중상자 수: ${round(prediction.regression.severe_injuries)} 명</div>
-            <div>- 경상자 수: ${round(prediction.regression.minor_injuries)} 명</div>
-        </div>
-    `;
+  <div class="predict-card">
+    <h3>${stationName}역 위험도 예측 결과</h3>
+    <div class="predict-row"><span>예측 사고 원인:</span> <strong>${prediction.predicted_cause}</strong></div>
+    <div class="predict-row"><span>피해액 위험도[A](1~5):</span> ${round(prediction.damage_risk)}</div>
+    <div class="predict-row"><span>사고 원인 위험도[B](0~3):</span> ${round(prediction.class_risk)}</div>
+    <div class="predict-row final"><span>최종 위험도(A × 0.6 + B × 0.4):</span> ${round(prediction.combined_risk)}</div>
+  </div>
+`;
     document.getElementById("predictResult").innerHTML = resultHTML;
+
 }
 
 // 전체 조회 핸들러 (독립적 예외 처리)

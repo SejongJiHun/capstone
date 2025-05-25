@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>철도 사고 예측 시스템</title>
 
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
@@ -31,10 +32,13 @@
 
     .title {
       font-size: 28px;
-      font-weight: 700;
+      font-weight: 800;
       text-align: center;
-      color: #1e293b;
-      margin-bottom: 12px;
+      background: linear-gradient(to right, #2563eb, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
     }
 
     .top-grid {
@@ -68,19 +72,26 @@
     .box.f {
       grid-column: 1 / span 2;
       grid-row: 3;
-      min-height: 300px; /* 기본 box보다 높게 설정 */
+      min-height: 300px;
     }
 
-    .box.c input {
+    .box.c input,
+    .box.c select {
       padding: 12px 16px;
       font-size: 15px;
       border: 1px solid #d1d5db;
       border-radius: 8px;
       background-color: #f9fafb;
       outline: none;
+      width: 100%;
+      box-sizing: border-box;
+      appearance: none;
+      -webkit-appearance: none;
+      box-shadow: none;
     }
 
-    .box.c input:focus {
+    .box.c input:focus,
+    .box.c select:focus {
       background-color: #ffffff;
       border-color: #60a5fa;
     }
@@ -113,6 +124,136 @@
       color: #1f2937;
       text-align: center;
     }
+
+    .autocomplete-list {
+      position: relative;
+    }
+
+    .autocomplete-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 220px;
+      overflow-y: auto;
+      background-color: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+      z-index: 999;
+      font-size: 15px;
+      margin-top: 4px;
+    }
+
+    .autocomplete-suggestions div {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .autocomplete-suggestions div:hover,
+    .autocomplete-active {
+      background-color: #e0f2fe !important;
+    }
+
+    .autocomplete-suggestions:empty {
+      display: none;
+    }
+
+    #stationLineInput {
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+
+
+
+
+
+
+    .weather-card {
+      background-color: #e0f2fe;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      font-size: 15px;
+      color: #1e293b;
+    }
+
+    .weather-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .weather-header h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .weather-region {
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .weather-content {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .weather-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+
+
+
+
+
+
+
+
+    .predict-card {
+      background-color: #fef3c7;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      font-size: 15px;
+      line-height: 1.6;
+      color: #374151;
+      text-align: left;
+    }
+
+    .predict-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #b45309;
+    }
+
+    .predict-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .predict-row span {
+      font-weight: 600;
+    }
+
+    .predict-row.final {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px dashed #facc15;
+    }
+
+
   </style>
 </head>
 <body>
@@ -124,8 +265,23 @@
     <div class="box d"><canvas id="chartD"></canvas></div>
 
     <div class="box c">
-      <input type="text" id="stationNameInput" placeholder="역명 입력 (예: 서울)">
-      <input type="text" id="stationLineInput" placeholder="노선 입력 (예: 수도권도시철도 1호선)">
+      <div class="autocomplete-list">
+        <input type="text" id="stationNameInput" placeholder="역명 입력 (자동완성)">
+        <div id="autocompleteList" class="autocomplete-suggestions"></div>
+      </div>
+
+      <select id="railTypeSelect">
+        <option disabled selected>철도 구분 선택</option>
+        <option value="일반철도">일반철도</option>
+        <option value="고속철도">고속철도</option>
+        <option value="도시철도">도시철도</option>
+      </select>
+
+      <select id="stationLineInput">
+        <option disabled selected>노선 선택</option>
+        <!-- JS로 채움 -->
+      </select>
+
       <button onclick="handleQuery();">검색</button>
       <div id="predictResult">위험도 결과: -</div>
     </div>
@@ -138,5 +294,101 @@
     <div class="box f"><canvas id="chartF"></canvas></div>
   </div>
 </div>
+
+<script>
+  let stationList = [];
+  let lineList = [];
+
+  Promise.all([
+    fetch("../data/station_names.json").then(res => res.json()),
+    fetch("../data/line_list.json").then(res => res.json())
+  ])
+          .then(([stations, lines]) => {
+            stationList = stations;
+            lineList = lines;
+            setupAutocomplete();
+            populateLineSelect();
+          });
+
+  function setupAutocomplete() {
+    const input = document.getElementById("stationNameInput");
+    const suggestionBox = document.getElementById("autocompleteList");
+    let currentFocus = -1;
+
+    input.addEventListener("input", () => {
+      const value = input.value.trim().toLowerCase();
+      suggestionBox.innerHTML = "";
+      currentFocus = -1;
+
+      if (!value) return;
+
+      const matches = stationList
+              .filter(name => name.toLowerCase().includes(value))
+              .slice(0, 20);
+
+      matches.forEach(name => {
+        const div = document.createElement("div");
+        div.textContent = name;
+        div.addEventListener("click", () => {
+          input.value = name;
+          suggestionBox.innerHTML = "";
+        });
+        suggestionBox.appendChild(div);
+      });
+    });
+
+    input.addEventListener("keydown", function (e) {
+      const items = suggestionBox.querySelectorAll("div");
+      if (e.key === "ArrowDown") {
+        if (currentFocus < items.length - 1) {
+          currentFocus++;
+          addActive(items);
+        }
+        e.preventDefault();
+      } else if (e.key === "ArrowUp") {
+        if (currentFocus > 0) {
+          currentFocus--;
+          addActive(items);
+        }
+        e.preventDefault();
+      } else if (e.key === "Enter") {
+        if (currentFocus > -1 && items[currentFocus]) {
+          e.preventDefault();
+          items[currentFocus].click();
+        }
+      }
+    });
+
+    function addActive(items) {
+      removeActive(items);
+      if (items.length > 0 && currentFocus >= 0) {
+        items[currentFocus].classList.add("autocomplete-active");
+        items[currentFocus].scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function removeActive(items) {
+      items.forEach(item => item.classList.remove("autocomplete-active"));
+    }
+
+    document.addEventListener("click", e => {
+      if (!e.target.closest(".autocomplete-list")) {
+        suggestionBox.innerHTML = "";
+      }
+    });
+  }
+
+  function populateLineSelect() {
+    const select = document.getElementById("stationLineInput");
+    lineList.sort().forEach(line => {
+      const option = document.createElement("option");
+      option.value = line;
+      option.textContent = line;
+      select.appendChild(option);
+    });
+  }
+
+
+</script>
 </body>
 </html>

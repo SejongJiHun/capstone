@@ -4,35 +4,32 @@ import lombok.Data;
 
 @Data
 public class ModelRequestDto {
-    private String date;                 // 일자 (예: "2023-12-15")
-    private String region;               // 지역명 (예: "서울")
-    private String line;                 // 노선 (예: "1호선")
-    private String station;              // 발생장소 (예: "구로역")
-    private Double temp;                 // 평균기온(°C)
-    private Double rain;                 // 강수량
-    private Double wind;                 // 평균풍속(m/s)
-    private Double humidity;             // 평균 상대습도(%)
-    private Double pressure;             // 평균기압(hPa)
-    private Double snow;                 //적설량
-    private String fog;                  // 안개유무 ("안개_유" / "안개_무")
-    private Integer passenger;           // 일평균 이용객
+    private String dayOfWeek;        // 요일
+    private String railType;         // 철도구분 (예: 도시철도)
+    private String line;             // 노선 (예: 2호선)
+    private String stationName;      // 발생장소 (예: 서울역)
+    private String stn;              // 지역명_업데이트 (예: 서울특별시)
+
+    private Double ta;          // 평균기온(°C)
+    private Double rn_day;      // 일강수량(mm)
+    private Double ws;          // 평균풍속(m/s)
+    private Double hm;          // 평균 상대습도(%)
+    private Double ts;          // 평균 지면온도(°C)
 
 
     public ModelRequestDto() {
     }
 
-    public ModelRequestDto(String date, String region, String line, String station, Double temp, Double rain, Double wind, Double humidity, Double pressure, Double snow, String fog, Integer passenger) {
-        this.date = date;
-        this.region = region;
+    public ModelRequestDto(String dayOfWeek, String railType, String line, String stationName, String stn, Double ta, Double rn_day, Double ws, Double hm, Double ts) {
+        this.dayOfWeek = dayOfWeek;
+        this.railType = railType;
         this.line = line;
-        this.station = station;
-        this.temp = temp;
-        this.rain = rain;
-        this.wind = wind;
-        this.humidity = humidity;
-        this.pressure = pressure;
-        this.snow = snow;
-        this.fog = fog;
-        this.passenger = passenger;
+        this.stationName = stationName;
+        this.stn = stn;
+        this.ta = ta;
+        this.rn_day = rn_day;
+        this.ws = ws;
+        this.hm = hm;
+        this.ts = ts;
     }
 }
