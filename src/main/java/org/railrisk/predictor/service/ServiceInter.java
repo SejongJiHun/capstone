@@ -1,7 +1,6 @@
 package org.railrisk.predictor.service;
 
 import org.railrisk.predictor.domain.Station;
-import org.railrisk.predictor.domain.StationPredict;
 import org.railrisk.predictor.domain.Weather;
 import org.railrisk.predictor.service.dto.ModelRequestDto;
 import org.railrisk.predictor.service.dto.ModelResponseDto;
@@ -25,6 +24,4 @@ public interface ServiceInter {
     // 역명으로 Station 객체 가져오기
     Station findStationByStationName(String stationName);
 
-    // 모든 역에 대한 위험도 가져오기
-    List<StationPredict> findAllStationPredicts();
 }

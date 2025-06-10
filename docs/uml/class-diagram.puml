@@ -1,0 +1,144 @@
+@startuml
+skinparam classAttributeIconSize 0
+top to bottom direction
+
+
+class JsController <<Controller>>
+
+interface ServiceInter <<Service>>
+class ServiceImpl <<Service>>
+
+class OriginWeatherApi <<Api>>
+
+class WeatherScheduler <<Scheduler>>
+
+class ModelRequestDtoParser <<Parser>>
+class WeatherParser <<Parser>>
+
+interface StationRepositoryInter <<JpaRepository>>
+interface WeatherRepositoryInter <<JpaRepository>>
+
+class Station <<Entity>>
+class Weather <<Entity>>
+
+
+
+
+JsController --> ServiceInter
+
+ServiceInter ..|> ServiceImpl
+
+ServiceImpl --> StationRepositoryInter
+ServiceImpl --> WeatherRepositoryInter
+ServiceImpl --> OriginWeatherApi
+ServiceImpl --> ModelRequestDtoParser
+ServiceImpl --> WeatherParser
+
+WeatherScheduler --> ServiceInter
+
+StationRepositoryInter --> Station
+WeatherRepositoryInter --> Weather
+
+
+
+
+
+
+class JsController <<Controller>> {
+  - serviceInter: ServiceInter
+
+  + getStationDataWeather(stationName: String): ResponseEntity<Map<String, Object>>
+  + getStationPredict(stationName: String, railType: String, stationLine: String): ResponseEntity<List<ModelResponseDto>>
+  + getRiskScore(stations: List<RiskRequestDto>): List<RiskResponseDto>
+}
+
+
+class WeatherScheduler <<Scheduler>> {
+  - serviceInter: ServiceInter
+
+  + Scheduled(): void
+}
+
+interface ServiceInter <<Service>> {
+  + fetchAndSaveWeather(): List<Weather>
+  + findWeatherByName(stationName: String): Weather
+  + findWeatherByStn(stn: String): Weather
+  + sendDataToModel(requestList: List<ModelRequestDto>): List<ModelResponseDto>
+  + findStationByStationName(stationName: String): Station
+}
+
+class ServiceImpl <<Service>> {
+  - weatherRepositoryInter: WeatherRepositoryInter
+  - stationRepositoryInter: StationRepositoryInter
+  - originWeatherApi: OriginWeatherApi
+  - restTemplate: RestTemplate
+
+  + fetchAndSaveWeather(): List<Weather>
+  + findWeatherByName(stationName: String): Weather
+  + findWeatherByStn(stn: String): Weather
+  + sendDataToModel(requestList: List<ModelRequestDto>): List<ModelResponseDto>
+  + findStationByStationName(stationName: String): Station
+}
+
+class OriginWeatherApi <<Api>> {
+  - API_URL: String
+
+  + getRawWeatherText(): String
+}
+
+class ModelRequestDtoParser <<Parser>> {
+  - getKoreanDayOfWeek(): String
+  - parseDoubleOrNull(value: String): Double
+}
+
+class WeatherParser <<Parser>> {
+  + parse(rawText: String): List<Weather>
+  - sanitize(raw: String): String
+  - check_fog(wp: String, vs: String): String
+}
+
+interface StationRepositoryInter <<JpaRepository>> {
+  + findByStationName(stationName: String): Optional<Station>
+}
+
+interface WeatherRepositoryInter <<JpaRepository>> {
+  + findByTime(time: String): List<Weather>
+  + findByStn(stn: String): Optional<Weather>
+  + findByTimeAndStn(time: String, stn: String): Optional<Weather>
+}
+
+
+class Station <<Entity>> {
+  - stationName: String
+  - address: String
+  - year1: Integer
+  - year2: Integer
+  - year3: Integer
+  - year4: Integer
+  - avg: Float
+  - lat: Double
+  - lon: Double
+  - stnNum: String
+  - stnName: String
+}
+
+
+class Weather <<Entity>> {
+  - id: Long
+  - time: String
+  - stn: String
+  - ws: String
+  - pa: String
+  - ta: String
+  - hm: String
+  - rn_day: String
+  - sd_day: String
+  - ts: String
+  - fog: String
+}
+
+
+
+
+
+@enduml

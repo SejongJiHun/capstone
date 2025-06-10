@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.railrisk.predictor.controller.dto.RiskRequestDto;
 import org.railrisk.predictor.controller.dto.RiskResponseDto;
 import org.railrisk.predictor.domain.Station;
-import org.railrisk.predictor.domain.StationPredict;
 import org.railrisk.predictor.domain.Weather;
 import org.railrisk.predictor.parser.ModelRequestDtoParser;
 import org.railrisk.predictor.service.ServiceInter;
@@ -17,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 @Controller
@@ -42,7 +40,7 @@ public class JsController {
     }
 
     @ResponseBody
-    @GetMapping("/api/station-predicts") // 검색창으로 역의 위험도 예측 값 가져오기
+    @GetMapping("/api/station-predicts") // 대시보드의 위험도 검색으로 역의 위험도 예측 값 가져오기
     public ResponseEntity<List<ModelResponseDto>> getStationPredict(@RequestParam("station_name") String stationName,
                                                                     @RequestParam("rail_type") String railType,
                                                                     @RequestParam("station_line") String stationLine) {

@@ -4,11 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.railrisk.predictor.api.OriginWeatherApi;
 import org.railrisk.predictor.domain.Station;
-import org.railrisk.predictor.domain.StationPredict;
 import org.railrisk.predictor.domain.Weather;
 import org.railrisk.predictor.parser.WeatherParser;
 import org.railrisk.predictor.repository.StationRepositoryInter;
-import org.railrisk.predictor.repository.StationPredictRepositoryInter;
 import org.railrisk.predictor.repository.WeatherRepositoryInter;
 import org.railrisk.predictor.service.dto.ModelRequestDto;
 import org.railrisk.predictor.service.dto.ModelResponseDto;
@@ -27,7 +25,7 @@ public class ServiceImpl implements ServiceInter{
     private final WeatherRepositoryInter weatherRepositoryInter;
     private final StationRepositoryInter stationRepositoryInter;
     private final OriginWeatherApi originWeatherApi;
-    private final StationPredictRepositoryInter stationPredictRepositoryInter;
+
 
     @Override
     public List<Weather> fetchAndSaveWeather() {
@@ -123,9 +121,6 @@ public class ServiceImpl implements ServiceInter{
         return station;
     }
 
-    @Override // 모든 역에 대한
-    public List<StationPredict> findAllStationPredicts(){
-        return stationPredictRepositoryInter.findAll();
-    }
+
 
 }
